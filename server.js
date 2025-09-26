@@ -6,19 +6,21 @@ import 'dotenv/config';
 import express from "express";
 import fs from "fs";
 import bodyParser from "body-parser";
+import cors from "cors";
 import { GoogleGenAI } from "@google/genai"; 
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
+// 2️⃣ Middleware
+app.use(cors()); // Allow requests from frontend
 app.use(bodyParser.json());
 
-// 2️⃣ Initialize Gemini Client
+// 3️⃣ Initialize Gemini Client
 const client = new GoogleGenAI({});
 const MODEL_NAME = "gemini-2.5-flash"; // Make sure your project has access to this model
 
-// 3️⃣ Load notes.txt
+// 4️⃣ Load notes.txt
 let notesContent = "";
 try {
   notesContent = fs.readFileSync("notes.txt", "utf-8");
@@ -28,7 +30,7 @@ try {
   process.exit(1); 
 }
 
-// 4️⃣ Optional: Load PDF if exists
+// 5️⃣ Optional: Load PDF if exists
 const pdfPath = "./test/data/05-versions-space.pdf";
 let pdfBuffer = null;
 
@@ -43,13 +45,15 @@ if (fs.existsSync(pdfPath)) {
   console.warn(`⚠️ PDF file not found: ${pdfPath}`);
 }
 
-// 5️⃣ /ask endpoint
+// 6️⃣ /ask endpoint
 app.post("/ask", async (req, res) => {
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: "Question is required." });
 
   try {
     const fullPrompt = `
+
+    you can do basic conversation to the user your name is trix.
       You are a helpful assistant. Answer the user's question using ONLY the following notes.
       If the answer is not in the notes, say the information is not available.
 
@@ -69,9 +73,10 @@ app.post("/ask", async (req, res) => {
       ],
     });
 
+    // Send response
     res.json({
       question,
-      answer: response.text.trim(),
+      answer: response.text?.trim() || "No answer returned from Gemini."
     });
 
   } catch (err) {
@@ -83,7 +88,7 @@ app.post("/ask", async (req, res) => {
   }
 });
 
-// 6️⃣ /test endpoint
+// 7️⃣ /test endpoint (health check)
 app.get("/test", (req, res) => {
   res.status(200).json({
     message: "Server is running and Gemini client initialized.",
@@ -95,7 +100,7 @@ app.get("/test", (req, res) => {
   });
 });
 
-// Start server
+// 8️⃣ Start server
 app.listen(port, () => {
   console.log(`🚀 Server listening on port ${port}`);
 });
